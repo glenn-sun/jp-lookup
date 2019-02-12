@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Japanese Lookup Helper</title>
+    <script src='https://cdn.jsdelivr.net/gh/naptha/tesseract.js@v1.0.14/dist/tesseract.min.js'></script>
+  </head>
+  <body>
+    <div class="page">
+      <h2>Japanese Lookup Helper</h2>
+      <div class="search">
+        <div class="searchitem">
+          <input class="ja" type="text" id="searchtext" autocomplete="off">
+          <div class="submit" onclick="onSubmit()">Search</div>
+        </div>
+        <span class="searchitem pastetext">...or paste an image from the clipboard</span>
+      </div>
+      <div class="main">
+        <iframe id="jisho" class="column" src="https://jisho.org/"></iframe>
+        <iframe id="alc" class="column" src="https://eow.alc.co.jp"></iframe>
+        <div class="column">
+          <div class="histcontainer">
+            <h2>History</h2>
+            <div id="clear" onclick="clearHistory()">Clear</div>
+            <div id="history">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <style type="text/css">
+      html, body {
+        font-family: Helvetica, Arial, sans-serif;
+        height: 100%;
+        background-color: #f2f4f7;
+        color: #222;
+        margin: 0;
+      }
+
+      h2 {
+        text-align: center;
+      }
+
+      input {
+        font-size: 16px;
+      }
+
+      .ja {
+        font-family: Meiryo;
+      }
+
+      .page {
+        margin: auto;
+        display: flex;
+        max-width: 1600px;
+        height: 100%;
+        flex-direction: column;
+      }
+
+      .search {
+        display: flex;
+        margin-bottom: 15px;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .searchitem {
+        margin-left: 50px;
+        margin-right: 50px;
+        display: flex;
+      }
+
+      .submit {
+        background-color: #dcdee5;
+        padding: 5px;
+        margin-left: 5px;
+      }
+
+      .submit:hover {
+        background-color: #ced1db;
+        cursor: pointer;
+      }
+
+      .main {
+        display: flex;
+        max-width: 1600px;
+        height: 100%;
+        flex: 1;
+      }
+
+      .column {
+        flex: 1 1 auto;
+        margin-right: 15px;
+        margin-bottom: 15px;
+        max-width: 33.3%
+      }
+
+      .pastetext {
+        font-style: italic;
+        color: #666;
+      }
+
+      .historyitem {
+        padding: 8px;
+        margin-bottom: 6px;
+        background-color: #dcdee5;
+      }
+
+      .historyitem:hover {
+        background-color: #ced1db;
+        cursor: pointer;
+      }
+
+      .histcontainer {
+        max-height: 100%;
+        overflow: auto;
+      }
+
+      #clear {
+        color: #EEE;
+        background-color: #A44;
+        padding: 8px;
+        text-align: center;
+        max-width: 60px;
+        margin: 15px auto;
+      }
+
+      #clear:hover {
+        background-color: #833;
+        cursor: pointer;
+      }
+    </style>
+    <script type="text/javascript">
+      var historystorage = JSON.parse(localStorage.getItem("history")) || [];
+      for (let item of historystorage) {
+        addToHistory(item);
+      }
+
+      function search(searchtext) {
+        var jishoURL = "https://jisho.org/search/" + searchtext;
+        var alcURL = "https://eow.alc.co.jp/search?q=" + searchtext;
+        document.getElementById("jisho").src = jishoURL;
+        document.getElementById("alc").src = alcURL;
+        historystorage.push(searchtext);
+        localStorage.setItem("history", JSON.stringify(historystorage));
+      }
+
+      function addToHistory(searchtext) {
+        var historyItem = document.createElement("div");
+        var historyText = document.createTextNode(searchtext);
+        historyItem.appendChild(historyText);
+        historyItem.classList.add("historyitem");
+        historyItem.classList.add("ja");
+        historyItem.onclick = () => search(searchtext);
+        document.getElementById("history").prepend(historyItem);
+      }
+
+      function clearHistory() {
+        localStorage.clear();
+        document.getElementById("history").innerHTML = "";
+      }
+
+      function onSubmit() {
+        var searchtext = document.getElementById("searchtext").value;
+        document.getElementById("searchtext").value = "";
+        search(searchtext);
+        addToHistory(searchtext);
+      }
+      function retrieveImageFromClipboardAsBlob(pasteEvent, callback) {
+        if (pasteEvent.clipboardData == false) {
+          if (typeof(callback) == "function") {
+            callback(undefined);
+          }
+        };
+        var items = pasteEvent.clipboardData.items;
+        if (items == undefined) {
+          if (typeof(callback) == "function") {
+            callback(undefined);
+          }
+        };
+        for (var i = 0; i < items.length; i++) {
+          // Skip content if not image
+          if (items[i].type.indexOf("image") == -1) continue;
+          // Retrieve image on clipboard as blob
+          var blob = items[i].getAsFile();
+          if (typeof(callback) == "function") {
+            callback(blob);
+          }
+        }
+      }
+      window.addEventListener("paste", function(pasteEvent){
+        console.log("paste");
+        retrieveImageFromClipboardAsBlob(pasteEvent, function(blob) {
+          Tesseract.recognize(blob, {lang: 'jpn'})
+          .then(function(result){
+            search(result.text);
+            addToHistory(result.text);
+          });
+        });
+      }, false);
+      document.getElementById('searchtext').onkeydown = function(event) {
+        if (event.keyCode == 13) {
+          onSubmit();
+        }
+      }
+    </script>
+  </body>
+</html>
