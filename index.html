@@ -10,7 +10,7 @@
       <h2>Japanese Lookup Helper</h2>
       <div class="search">
         <div class="searchitem">
-          <input class="ja" type="text" id="searchtext" autocomplete="off">
+          <input class="jp" type="text" id="searchtext" autocomplete="off">
           <div class="submit" onclick="onSubmit()">Search</div>
         </div>
         <span class="searchitem pastetext">...or paste an image from the clipboard</span>
@@ -33,7 +33,7 @@
           <h2>Confirm OCR before searching</h2>
           <div><img id="ocrimage"></div>
           <div class="searchcontainer">
-            <input class="ja" type="text" id="searchtextocr" autocomplete="off">
+            <input class="jp" type="text" id="searchtextocr" autocomplete="off">
             <div class="submit" onclick="onSubmit()">Search</div>
           </div>
           <div>Common mistakes for copy-paste use:</div>
@@ -44,7 +44,10 @@
             <div class="jp">ツ　ッ　ヤ　ャ　ユ　ュ　ヨ　ョ</div>
             <div class="jp">ア　ァ　イ　ィ　ウ　ゥ　エ　ェ　オ　ォ</div>
             <div class="jp">バ　パ　ビ　ピ　ブ　プ　ベ　ペ　ボ　ポ</div>
+            <div class="jp">ア）ー　エ　オ　カ　タ　ト　ニ　ハ　ヘ　ロ</div>
+            <div class="jp">漢）一　工　才　力　夕　卜　二　八　へ　口</div>
           </div>
+          <div id="cancel" onclick="cancelOCR()">Cancel</div>
         </div>
       </div>
     </div>
@@ -65,7 +68,7 @@
         font-size: 16px;
       }
 
-      .ja {
+      .jp {
         font-family: Meiryo;
       }
 
@@ -193,6 +196,17 @@
         margin-top: 8px;
         margin-bottom: 8px;
       }
+
+      #cancel {
+        color: #EEE;
+        background-color: #A44;
+        padding: 5px;
+      }
+
+      #cancel:hover {
+        background-color: #833;
+        cursor: pointer;
+      }
     </style>
     <script type="text/javascript">
       var historystorage = JSON.parse(localStorage.getItem("history")) || [];
@@ -212,6 +226,12 @@
         confirmOCRon = !confirmOCRon;
         localStorage.setItem("ocr", confirmOCRon.toString());
         displayOCR();
+      }
+
+      function cancelOCR() {
+        document.getElementById("searchtext").value = "";
+        document.getElementById("searchtextocr").value = "";
+        document.getElementById("ocroverlay").style.visibility = "hidden";
       }
 
       for (let item of historystorage) {
@@ -234,7 +254,7 @@
         var historyText = document.createTextNode(searchtext);
         historyItem.appendChild(historyText);
         historyItem.classList.add("historyitem");
-        historyItem.classList.add("ja");
+        historyItem.classList.add("jp");
         historyItem.onclick = () => search(searchtext);
         document.getElementById("history").prepend(historyItem);
       }
