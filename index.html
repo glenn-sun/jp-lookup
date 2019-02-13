@@ -14,6 +14,7 @@
           <div class="submit" onclick="onSubmit()">Search</div>
         </div>
         <span class="searchitem pastetext">...or paste an image from the clipboard</span>
+        <span class="searchitem" id="ocrtoggle" onclick="toggleOCR()">Confirm OCR is ON, click to toggle</span>
       </div>
       <div class="main">
         <iframe id="jisho" class="column" src="https://jisho.org/"></iframe>
@@ -24,6 +25,25 @@
             <div id="clear" onclick="clearHistory()">Clear</div>
             <div id="history">
             </div>
+          </div>
+        </div>
+      </div>
+      <div class="ocroverlay" id="ocroverlay" style="visibility: hidden">
+        <div class="ocrfixwindow">
+          <h2>Confirm OCR before searching</h2>
+          <div><img id="ocrimage"></div>
+          <div class="searchcontainer">
+            <input class="ja" type="text" id="searchtextocr" autocomplete="off">
+            <div class="submit" onclick="onSubmit()">Search</div>
+          </div>
+          <div>Common mistakes for copy-paste use:</div>
+          <div>
+            <div class="jp">つ　っ　や　ゃ　ゆ　ゅ　よ　ょ</div>
+            <div class="jp">あ　ぁ　い　ぃ　う　ぅ　え　ぇ　お　ぉ</div>
+            <div class="jp">ば　ぱ　び　ぴ　ぶ　ぷ　べ　ぺ　ぼ　ぽ</div>
+            <div class="jp">ツ　ッ　ヤ　ャ　ユ　ュ　ヨ　ョ</div>
+            <div class="jp">ア　ァ　イ　ィ　ウ　ゥ　エ　ェ　オ　ォ</div>
+            <div class="jp">バ　パ　ビ　ピ　ブ　プ　ベ　ペ　ボ　ポ</div>
           </div>
         </div>
       </div>
@@ -129,9 +149,71 @@
         background-color: #833;
         cursor: pointer;
       }
+
+      .ocroverlay {
+        height: 100vh;
+        width: 100vw;
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        background-color: #0007;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .ocrfixwindow {
+        max-width: 800px;
+        background-color: #f2f4f7;
+        flex: 1;
+        padding: 10px;
+      }
+
+      #ocrtoggle {
+        background-color: #dcdee5;
+        padding: 5px;
+      }
+
+      #ocrtoggle:hover {
+        background-color: #ced1db;
+        cursor: pointer;
+      }
+
+      .ocrfixwindow {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .searchcontainer {
+        display: flex;
+      }
+
+      .ocrfixwindow > div {
+        margin-top: 8px;
+        margin-bottom: 8px;
+      }
     </style>
     <script type="text/javascript">
       var historystorage = JSON.parse(localStorage.getItem("history")) || [];
+      var confirmOCRon = localStorage.getItem("ocr") === "false" ? false : true;
+
+      function displayOCR() {
+        if (confirmOCRon) {
+          document.getElementById("ocrtoggle").innerHTML = "Confirm OCR is ON, click to toggle";
+        } else {
+          document.getElementById("ocrtoggle").innerHTML = "Confirm OCR is OFF, click to toggle";
+        }
+      }
+
+      displayOCR();
+
+      function toggleOCR() {
+        confirmOCRon = !confirmOCRon;
+        localStorage.setItem("ocr", confirmOCRon.toString());
+        displayOCR();
+      }
+
       for (let item of historystorage) {
         addToHistory(item);
       }
@@ -146,6 +228,8 @@
       }
 
       function addToHistory(searchtext) {
+        var histItemCont = document.createElement("div");
+        histItemCont.classList.add("histitemcont");
         var historyItem = document.createElement("div");
         var historyText = document.createTextNode(searchtext);
         historyItem.appendChild(historyText);
@@ -161,10 +245,14 @@
       }
 
       function onSubmit() {
-        var searchtext = document.getElementById("searchtext").value;
+        var searchtext = document.getElementById("searchtextocr").value || document.getElementById("searchtext").value;
         document.getElementById("searchtext").value = "";
-        search(searchtext);
-        addToHistory(searchtext);
+        document.getElementById("searchtextocr").value = "";
+        if (searchtext) {
+          search(searchtext);
+          addToHistory(searchtext);
+        }
+        document.getElementById("ocroverlay").style.visibility = "hidden";
       }
       function retrieveImageFromClipboardAsBlob(pasteEvent, callback) {
         if (pasteEvent.clipboardData == false) {
@@ -189,20 +277,38 @@
         }
       }
       window.addEventListener("paste", function(pasteEvent){
-        console.log("paste");
         retrieveImageFromClipboardAsBlob(pasteEvent, function(blob) {
-          Tesseract.recognize(blob, {lang: 'jpn'})
-          .then(function(result){
-            search(result.text);
-            addToHistory(result.text);
-          });
+          console.log("got blob");
+          if (blob) {
+            if (confirmOCRon) {
+              var imgUrl = URL.createObjectURL(blob);
+              document.getElementById("ocrimage").src = imgUrl;
+              document.getElementById("searchtextocr").value = "loading";
+              document.getElementById("ocroverlay").style.visibility = "visible";
+            }
+            Tesseract.recognize(blob, {lang: 'jpn'}).then(function(result){
+              if (confirmOCRon) {
+                document.getElementById("searchtextocr").value = result.text;
+              } else {
+                if (result.text) {
+                  search(result.text);
+                  addToHistory(result.text);
+                }
+              }
+            });
+          }
         });
       }, false);
       document.getElementById('searchtext').onkeydown = function(event) {
         if (event.keyCode == 13) {
           onSubmit();
         }
-      }
+      };
+      document.getElementById('searchtextocr').onkeydown = function(event) {
+        if (event.keyCode == 13) {
+          onSubmit();
+        }
+      };
     </script>
   </body>
 </html>
