@@ -243,8 +243,6 @@
         var alcURL = "https://eow.alc.co.jp/search?q=" + searchtext;
         document.getElementById("jisho").src = jishoURL;
         document.getElementById("alc").src = alcURL;
-        historystorage.push(searchtext);
-        localStorage.setItem("history", JSON.stringify(historystorage));
       }
 
       function addToHistory(searchtext) {
@@ -257,6 +255,8 @@
         historyItem.classList.add("jp");
         historyItem.onclick = () => search(searchtext);
         document.getElementById("history").prepend(historyItem);
+        historystorage.push(searchtext);
+        localStorage.setItem("history", JSON.stringify(historystorage));
       }
 
       function clearHistory() {
