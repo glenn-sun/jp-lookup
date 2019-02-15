@@ -255,8 +255,6 @@
         historyItem.classList.add("jp");
         historyItem.onclick = () => search(searchtext);
         document.getElementById("history").prepend(historyItem);
-        historystorage.push(searchtext);
-        localStorage.setItem("history", JSON.stringify(historystorage));
       }
 
       function clearHistory() {
@@ -271,6 +269,8 @@
         if (searchtext) {
           search(searchtext);
           addToHistory(searchtext);
+          historystorage.push(searchtext);
+          localStorage.setItem("history", JSON.stringify(historystorage));
         }
         document.getElementById("ocroverlay").style.visibility = "hidden";
       }
@@ -313,6 +313,8 @@
                 if (result.text) {
                   search(result.text);
                   addToHistory(result.text);
+                  historystorage.push(searchtext);
+                  localStorage.setItem("history", JSON.stringify(historystorage));
                 }
               }
             });
